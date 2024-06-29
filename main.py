@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from config import ORIGINS
 from logic import handle_login, get_items, create_user, handle_refresh
 from typing import Annotated
 from auth_table import create_table, user_table
@@ -22,6 +21,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
                    "http://localhost:3000",
+                   "http://0.0.0.0:3000", 
                    "http://45.55.129.24:3000", 
                    "http://45.55.129.24:3000/home", 
                    "http://127.0.0.1:5173", 
