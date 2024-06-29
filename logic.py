@@ -46,8 +46,14 @@ def get_items():
                     "itemLocation": result[5]
                 }
                 new_results.append(item)
-            return new_results
-        return []
+            return {
+                "items": new_results,
+                "dbFile": DB_FILE
+                }
+        return {
+            "items": [],
+            "dbFile": ""
+            }
     except Exception as e:
         print(e)
         return []

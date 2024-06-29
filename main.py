@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from logic import handle_login, get_items, create_user, handle_refresh
 from typing import Annotated
 from auth_table import create_table, user_table
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 import logging
 from auth_handler import AuthHandler
@@ -20,6 +20,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+                   "http://localhost:5173",
                    "http://localhost:3000",
                    "0.0.0.0:3000", 
                    "0.0.0.0:3000/home", 
