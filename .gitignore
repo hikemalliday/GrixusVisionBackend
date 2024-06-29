@@ -1,2 +1,4 @@
 .venv
 config.py
+auth.db
+auth_table.py
