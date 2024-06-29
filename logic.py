@@ -46,7 +46,7 @@ def get_items():
                     "itemLocation": result[5]
                 }
                 new_results.append(item)
-            print(new_results)
+            print("returning payload now")
             return {
                 "items": new_results,
                 "dbFile": DB_FILE
