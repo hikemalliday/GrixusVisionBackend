@@ -82,14 +82,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         print(e)
         return {"message": "failed to log in."}
 
-# @app.get("/refresh")
-# async def refresh(request: Request):
-#     print(request.cookies)
-#     # Basically, we need to take in the refresh token + username, and search the database for that user
-#     # We then check to see if our refresh token matches the refresh token in the db
-#     # This is why tokens must be created with the username
-#     return {"message": "/refresh endpoint test"}
-
 @app.post("/refresh")
 async def refresh(request: Refresh):
     print(request.refresh_token)

@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from datetime import timedelta, datetime
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from starlette import status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
@@ -24,7 +24,8 @@ def get_newest_db(DB_DIR):
             creation_time = os.path.getctime(file_path)
             if creation_time > newest_time:
                 newest_time = creation_time
-                newest_file = file_path   
+                newest_file = file_path  
+    print(f"NEWEST FILE: {newest_file}") 
     return newest_file
 
 def get_items():
