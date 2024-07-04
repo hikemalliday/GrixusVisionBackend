@@ -113,19 +113,6 @@ def create_refresh_token(username: str, user_id: int, expires_delta: timedelta):
     encode.update({"exp": expires})
     return jwt.encode(encode, SECRET_REFRESH_KEY, algorithm=ALGORITHM)
 
-# async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
-#     try:
-#         payload = jwt.decode(token, SECRET_ACCESS_KEY, algorithms=[ALGORITHM])
-#         username: str = payload.get("username")
-#         user_id: int = payload.get("id")
-#         if username is None or user_id is None:
-#             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-#                                 detail="Could not validate user.")
-#         return {"username": username, "id": user_id}
-#     except JWTError:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-#                             detail="Could not validate user.")
-    
 def handle_insert_refresh_token(username: str, id: str, refresh_token):
     try:
         conn = sqlite3.connect("./data/auth.db")
