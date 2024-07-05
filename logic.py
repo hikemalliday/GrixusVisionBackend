@@ -25,16 +25,17 @@ def get_newest_db(DB_DIR):
             if creation_time > newest_time:
                 newest_time = creation_time
                 newest_file = file_path  
-    print(f"NEWEST FILE: {newest_file}") 
     return newest_file
 
-def get_items():
+def get_items(page: int, limit: int):
     DB_FILE = get_newest_db(DB_DIR)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    offset = (page - 1) * limit 
+
     try:
-        query = '''SELECT * FROM char_inventory'''
-        cursor.execute(query)
+        query = '''SELECT * FROM char_inventory LIMIT ? OFFSET ?'''
+        cursor.execute(query, (limit, offset))
         results = cursor.fetchall()
         if results:
             new_results = []
@@ -51,11 +52,11 @@ def get_items():
             return {
                 "items": new_results,
                 "dbFile": DB_FILE
-                }
+            }
         return {
             "items": [],
             "dbFile": ""
-            }
+        }
     except Exception as e:
         print(e)
         return []

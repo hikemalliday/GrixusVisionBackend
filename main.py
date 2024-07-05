@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import Page, Params, paginate
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from logic import handle_login, get_items, create_user, handle_refresh
 from typing import Annotated
 from auth_table import create_table, user_table
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
-import logging
 from auth_handler import AuthHandler
+import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +51,14 @@ class Token(BaseModel):
 class Refresh(BaseModel):
     refresh_token: str
 
+class Item(BaseModel):
+    itemName: str
+    charName: str
+    itemCount: str
+    itemLocation: str
+    charGuild: str
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(_, exc):
     logger.error(f"Unhandled error: {exc}")
@@ -58,10 +67,13 @@ async def global_exception_handler(_, exc):
         content={"message": "Internal Server Error"},
     )
 
-@app.get("/get_items")
-async def get_items_endpoint():
+@app.get("/get_items", response_model=Page[Item])
+async def get_items_endpoint(params: Params = Depends()):
     try:
-        return get_items()
+        page = params.page
+        limit = params.limit
+        items_query = get_items(page, limit)
+        return paginate(items_query, params)
     except Exception as e:
         print(e)
 
