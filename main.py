@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import Page, Params, paginate
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,7 +9,7 @@ from typing import Annotated
 from auth_table import create_table, user_table
 from auth_handler import AuthHandler
 import logging
-
+from typing import Optional
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -68,11 +68,15 @@ async def global_exception_handler(_, exc):
     )
 
 @app.get("/get_items", response_model=Page[Item])
-async def get_items_endpoint(params: Params = Depends()):
+async def get_items_endpoint(
+    params: Params = Depends(),  
+    char_name: Optional[str] = Query("", alias="charName"),
+    item_name: Optional[str] = Query("", alias="itemName")
+    ):
     try:
         page = params.page
-        limit = params.limit
-        items_query = get_items(page, limit)
+        limit = params.size
+        items_query = get_items(page, limit, char_name, item_name)
         return paginate(items_query, params)
     except Exception as e:
         print(e)

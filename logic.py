@@ -27,39 +27,53 @@ def get_newest_db(DB_DIR):
                 newest_file = file_path  
     return newest_file
 
-def get_items(page: int, limit: int):
+def get_items(page: int, limit: int, char_name: str, item_name: str):
     DB_FILE = get_newest_db(DB_DIR)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     offset = (page - 1) * limit 
 
     try:
-        query = '''SELECT * FROM char_inventory LIMIT ? OFFSET ?'''
-        cursor.execute(query, (limit, offset))
+        query = '''SELECT * FROM char_inventory'''
+        params = []
+        
+        if char_name and item_name:
+            query += ' WHERE char_name = ? AND item_name LIKE ?'
+            params.extend([char_name, item_name])
+        elif char_name:
+            query += ' WHERE char_name = ?'
+            params.append(char_name)
+        elif item_name:
+            query += ' WHERE item_name LIKE ?'
+            params.append(item_name)
+        
+        query += ' LIMIT ? OFFSET ?'
+        params.extend([limit, offset])
+        
+        cursor.execute(query, tuple(params))
         results = cursor.fetchall()
-        if results:
-            new_results = []
-            for result in results:
-                item = {
-                    "charName": result[1],
-                    "charGuild": result[2],
-                    "itemName": result[3],
-                    "itemCount": result[4],
-                    "itemLocation": result[5]
-                }
-                new_results.append(item)
-            print("returning payload now")
-            return {
-                "items": new_results,
-                "dbFile": DB_FILE
-            }
+        
+        new_results = [
+            {
+                "charName": result[1],
+                "charGuild": result[2],
+                "itemName": result[3],
+                "itemCount": result[4],
+                "itemLocation": result[5]
+            } for result in results
+        ]
+        
+        return {
+            "items": new_results,
+            "dbFile": DB_FILE
+        }
+        
+    except Exception as e:
+        print(e)
         return {
             "items": [],
             "dbFile": ""
         }
-    except Exception as e:
-        print(e)
-        return []
     finally:
         conn.close()
 
