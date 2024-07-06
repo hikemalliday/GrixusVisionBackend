@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_pagination import Page, Params, paginate
+from fastapi_pagination import Page, Params
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,7 +9,7 @@ from typing import Annotated
 from auth_table import create_table, user_table
 from auth_handler import AuthHandler
 import logging
-from typing import Optional
+from typing import Optional, List, TypeVar, Generic
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ app.add_middleware(
 )
 
 
+
 app.add_middleware(AuthHandler)
 
 class CreateUserRequest(BaseModel):
@@ -54,9 +55,30 @@ class Refresh(BaseModel):
 class Item(BaseModel):
     itemName: str
     charName: str
-    itemCount: str
+    itemCount: int
     itemLocation: str
     charGuild: str
+
+class ItemResponse(BaseModel):
+    results: List[Item]
+    dbFile: str
+    page: int
+    size: int
+
+T = TypeVar("T")
+
+class CustomPage(Page[T], Generic[T]):
+    custom_property: str
+
+
+def custom_paginate(object: dict, page: int, size: int) -> ItemResponse:
+    return {
+        "results": object["items"],
+        "dbFile": object["dbFile"],
+        "page": page,
+        "size": size,
+    }
+
 
 
 @app.exception_handler(Exception)
@@ -67,17 +89,21 @@ async def global_exception_handler(_, exc):
         content={"message": "Internal Server Error"},
     )
 
-@app.get("/get_items", response_model=Page[Item])
+@app.get("/get_items", response_model=ItemResponse)
 async def get_items_endpoint(
     params: Params = Depends(),  
     char_name: Optional[str] = Query("", alias="charName"),
     item_name: Optional[str] = Query("", alias="itemName")
     ):
     try:
+        print("params:")
+        print(params)
         page = params.page
         limit = params.size
-        items_query = get_items(page, limit, char_name, item_name)
-        return paginate(items_query, params)
+        items_query_object = get_items(page, limit, char_name, item_name)
+        custom_results = custom_paginate(items_query_object, page, limit)
+        print(custom_results)
+        return custom_results
     except Exception as e:
         print(e)
 

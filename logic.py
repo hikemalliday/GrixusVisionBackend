@@ -38,12 +38,15 @@ def get_items(page: int, limit: int, char_name: str, item_name: str):
         params = []
         
         if char_name and item_name:
+            print("if char_name and item_name")
             query += ' WHERE char_name = ? AND item_name LIKE ?'
             params.extend([char_name, item_name])
         elif char_name:
+            print("if char_name")
             query += ' WHERE char_name = ?'
             params.append(char_name)
         elif item_name:
+            print("if item_name")
             query += ' WHERE item_name LIKE ?'
             params.append(item_name)
         
@@ -62,11 +65,11 @@ def get_items(page: int, limit: int, char_name: str, item_name: str):
                 "itemLocation": result[5]
             } for result in results
         ]
-        
         return {
             "items": new_results,
             "dbFile": DB_FILE
         }
+    
         
     except Exception as e:
         print(e)
