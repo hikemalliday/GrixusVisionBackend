@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
@@ -28,8 +28,8 @@ class AuthHandler(BaseHTTPMiddleware):
                 # This line checks for validity of Access Token
                 payload = jwt.decode(token, SECRET_ACCESS_KEY, algorithms=[ALGORITHM])
                 request.state.user = {"username": payload.get("username"), "id": payload.get("id")}
-                print("Authorized! (middleware class)")
             except Exception:
+                print("auth handler could not validate")
                 return JSONResponse(status_code=401, content={"detail": "Could not validate token"})
 
         response = await call_next(request)

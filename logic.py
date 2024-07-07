@@ -27,48 +27,58 @@ def get_newest_db(DB_DIR):
                 newest_file = file_path  
     return newest_file
 
-def get_items(page: int, limit: int, char_name: str, item_name: str):
+def get_items_wrapper(page: int, limit: int, char_name: str, item_name: str):
+    count = get_items(page, limit, char_name, item_name, False)
+    results = get_items(page, limit, char_name, item_name, True)
+    results["count"] = count
+    return results
+
+def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: bool):
     DB_FILE = get_newest_db(DB_DIR)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     offset = (page - 1) * limit 
 
     try:
-        query = '''SELECT * FROM char_inventory'''
+        if paginate:
+            query = '''SELECT * FROM char_inventory'''
+        else:
+            query = '''SELECT COUNT(*) FROM char_inventory'''
         params = []
         
         if char_name and item_name:
-            print("if char_name and item_name")
             query += ' WHERE char_name = ? AND item_name LIKE ?'
-            params.extend([char_name, item_name])
+            params.extend([char_name, f"%{item_name}%"])
         elif char_name:
-            print("if char_name")
             query += ' WHERE char_name = ?'
             params.append(char_name)
         elif item_name:
-            print("if item_name")
             query += ' WHERE item_name LIKE ?'
-            params.append(item_name)
-        
-        query += ' LIMIT ? OFFSET ?'
-        params.extend([limit, offset])
+            params.append(f"%{item_name}%")
+
+        if paginate:
+            query += ' LIMIT ? OFFSET ?'
+            params.extend([limit, offset])
         
         cursor.execute(query, tuple(params))
         results = cursor.fetchall()
-        
-        new_results = [
-            {
-                "charName": result[1],
-                "charGuild": result[2],
-                "itemName": result[3],
-                "itemCount": result[4],
-                "itemLocation": result[5]
-            } for result in results
-        ]
-        return {
-            "items": new_results,
-            "dbFile": DB_FILE
-        }
+        if paginate:
+            new_results = [
+                {
+                    "charName": result[1],
+                    "charGuild": result[2],
+                    "itemName": result[3],
+                    "itemCount": result[4],
+                    "itemLocation": result[5]
+                } for result in results
+            ]
+            return {
+                "items": new_results,
+                "dbFile": DB_FILE
+            }
+        else:
+            count = results[0][0]
+            return count
     
         
     except Exception as e:
@@ -159,7 +169,7 @@ def handle_login(username: str, password: str):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate user.")
-    access_token = create_access_token(user["username"], user["id"], timedelta(minutes=15))
+    access_token = create_access_token(user["username"], user["id"], timedelta(minutes=30))
     refresh_token = create_refresh_token(user["username"], user["id"], timedelta(minutes=60))
     token_is_inserted = handle_insert_refresh_token(username, user["id"], refresh_token)
 
@@ -174,11 +184,25 @@ def handle_login(username: str, password: str):
 def handle_refresh(token: str):
     try:
         payload = jwt.decode(token, SECRET_REFRESH_KEY, algorithms=[ALGORITHM])
-        access_token = create_access_token(payload.get("username"), payload.get("id"), timedelta(minutes=15))
+        access_token = create_access_token(payload.get("username"), payload.get("id"), timedelta(minutes=30))
         return {"access_token": access_token}
     except Exception as e:
         print(e)
         return e
+    
+def get_char_names():
+    try:
+        DB_FILE = get_newest_db(DB_DIR)
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        query = '''SELECT DISTINCT char_name FROM char_inventory'''
+        cursor.execute(query)
+        return [char_name[0] for char_name in cursor.fetchall()]
+    except Exception as e:
+        print(e)
+        return e
+    finally:
+        conn.close()
 
 
     

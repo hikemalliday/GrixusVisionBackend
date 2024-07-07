@@ -4,7 +4,7 @@ from fastapi_pagination import Page, Params
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from logic import handle_login, get_items, create_user, handle_refresh
+from logic import handle_login, get_items_wrapper, create_user, handle_refresh, get_char_names
 from typing import Annotated
 from auth_table import create_table, user_table
 from auth_handler import AuthHandler
@@ -64,6 +64,10 @@ class ItemResponse(BaseModel):
     dbFile: str
     page: int
     size: int
+    count: int
+
+class CharNames(BaseModel):
+    charName: str
 
 T = TypeVar("T")
 
@@ -75,10 +79,10 @@ def custom_paginate(object: dict, page: int, size: int) -> ItemResponse:
     return {
         "results": object["items"],
         "dbFile": object["dbFile"],
+        "count": object["count"],
         "page": page,
         "size": size,
     }
-
 
 
 @app.exception_handler(Exception)
@@ -96,14 +100,21 @@ async def get_items_endpoint(
     item_name: Optional[str] = Query("", alias="itemName")
     ):
     try:
-        print("params:")
-        print(params)
+        if char_name == "ALL":
+            char_name = ""
         page = params.page
         limit = params.size
-        items_query_object = get_items(page, limit, char_name, item_name)
+        items_query_object = get_items_wrapper(page, limit, char_name, item_name)
         custom_results = custom_paginate(items_query_object, page, limit)
-        print(custom_results)
         return custom_results
+    except Exception as e:
+        print(e)
+
+@app.get("/get_char_names")
+async def get_char_names_endpoint():
+    try:
+        char_names = get_char_names()
+        return char_names
     except Exception as e:
         print(e)
 
@@ -126,7 +137,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
 @app.post("/refresh")
 async def refresh(request: Refresh):
-    print(request.refresh_token)
     return handle_refresh(request.refresh_token)
 
 @app.on_event("shutdown")
