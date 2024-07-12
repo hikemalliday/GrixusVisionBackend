@@ -1,14 +1,15 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from logic import handle_login, get_items, create_user, handle_refresh
-from typing import Annotated
-from auth_table import create_table, user_table
+from fastapi_pagination import Page, Params
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-import logging
+from pydantic import BaseModel
+from logic import handle_login, get_items_wrapper, create_user, handle_refresh, get_char_names
+from typing import Annotated
+from auth_table import create_table, user_table
 from auth_handler import AuthHandler
-
+import logging
+from typing import Optional, List, TypeVar, Generic
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ app.add_middleware(
 )
 
 
+
 app.add_middleware(AuthHandler)
 
 class CreateUserRequest(BaseModel):
@@ -50,6 +52,39 @@ class Token(BaseModel):
 class Refresh(BaseModel):
     refresh_token: str
 
+class Item(BaseModel):
+    itemName: str
+    charName: str
+    itemCount: int
+    itemLocation: str
+    charGuild: str
+
+class ItemResponse(BaseModel):
+    results: List[Item]
+    dbFile: str
+    page: int
+    size: int
+    count: int
+
+class CharNames(BaseModel):
+    charName: str
+
+T = TypeVar("T")
+
+class CustomPage(Page[T], Generic[T]):
+    custom_property: str
+
+
+def custom_paginate(object: dict, page: int, size: int) -> ItemResponse:
+    return {
+        "results": object["items"],
+        "dbFile": object["dbFile"],
+        "count": object["count"],
+        "page": page,
+        "size": size,
+    }
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(_, exc):
     logger.error(f"Unhandled error: {exc}")
@@ -58,10 +93,28 @@ async def global_exception_handler(_, exc):
         content={"message": "Internal Server Error"},
     )
 
-@app.get("/get_items")
-async def get_items_endpoint():
+@app.get("/get_items", response_model=ItemResponse)
+async def get_items_endpoint(
+    params: Params = Depends(),  
+    char_name: Optional[str] = Query("", alias="charName"),
+    item_name: Optional[str] = Query("", alias="itemName")
+    ):
     try:
-        return get_items()
+        if char_name == "ALL":
+            char_name = ""
+        page = params.page
+        limit = params.size
+        items_query_object = get_items_wrapper(page, limit, char_name, item_name)
+        custom_results = custom_paginate(items_query_object, page, limit)
+        return custom_results
+    except Exception as e:
+        print(e)
+
+@app.get("/get_char_names")
+async def get_char_names_endpoint():
+    try:
+        char_names = get_char_names()
+        return char_names
     except Exception as e:
         print(e)
 
@@ -84,7 +137,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
 @app.post("/refresh")
 async def refresh(request: Refresh):
-    print(request.refresh_token)
     return handle_refresh(request.refresh_token)
 
 @app.on_event("shutdown")
