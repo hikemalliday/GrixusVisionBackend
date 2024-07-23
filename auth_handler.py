@@ -8,6 +8,7 @@ from config import SECRET_ACCESS_KEY, ALGORITHM
 
 
 
+
 class AuthHandler(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.method == "OPTIONS":
