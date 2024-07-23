@@ -1,0 +1,23 @@
+on:
+  push:
+    branches:
+      - "**"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir ~/.ssh/
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan 45.55.129.24 >> ~/.ssh/known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: SSH into server and update
+        run: |
+          ssh -o StrictHostKeyChecking=no mike@45.55.129.24 -t "/home/mike/projects/GrixusVisionBackend/update.sh"

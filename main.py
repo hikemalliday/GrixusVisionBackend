@@ -97,14 +97,16 @@ async def global_exception_handler(_, exc):
 async def get_items_endpoint(
     params: Params = Depends(),  
     char_name: Optional[str] = Query("", alias="charName"),
-    item_name: Optional[str] = Query("", alias="itemName")
+    item_name: Optional[str] = Query("", alias="itemName"),
+    active_col: Optional[str] = Query("", alias="activeColumn")
     ):
     try:
+        print("TEST GET ITEMS")
         if char_name == "ALL":
             char_name = ""
         page = params.page
         limit = params.size
-        items_query_object = get_items_wrapper(page, limit, char_name, item_name)
+        items_query_object = get_items_wrapper(page, limit, char_name, item_name, active_col)
         custom_results = custom_paginate(items_query_object, page, limit)
         return custom_results
     except Exception as e:

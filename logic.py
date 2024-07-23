@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from config import SECRET_ACCESS_KEY, SECRET_REFRESH_KEY, ALGORITHM, DB_DIR, LOCAL_DB
+import re
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
@@ -27,13 +28,21 @@ def get_newest_db(DB_DIR):
                 newest_file = file_path  
     return newest_file
 
-def get_items_wrapper(page: int, limit: int, char_name: str, item_name: str):
-    count = get_items(page, limit, char_name, item_name, False)
-    results = get_items(page, limit, char_name, item_name, True)
+def get_items_wrapper(page: int, limit: int, char_name: str, item_name: str, active_col: str):
+    def snake_case(string: str) -> str:
+        s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', string)
+        return s1.lower()
+    
+    print("ABOUT TO PRINT CAMEL CASE")
+    active_col = snake_case(active_col)
+    print(f"active_col snake_case: {active_col}")
+
+    count = get_items(page, limit, char_name, item_name, False, active_col)
+    results = get_items(page, limit, char_name, item_name, True, active_col)
     results["count"] = count
     return results
 
-def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: bool):
+def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: bool, active_col: str):
     DB_FILE = get_newest_db(DB_DIR)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -49,16 +58,22 @@ def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: b
         if char_name and item_name:
             query += ' WHERE char_name = ? AND item_name LIKE ?'
             params.extend([char_name, f"%{item_name}%"])
+
         elif char_name:
             query += ' WHERE char_name = ?'
             params.append(char_name)
+
         elif item_name:
             query += ' WHERE item_name LIKE ?'
             params.append(f"%{item_name}%")
 
+        if active_col:
+            query += f" ORDER BY {active_col} ASC"
+
         if paginate:
             query += ' LIMIT ? OFFSET ?'
             params.extend([limit, offset])
+        
         
         cursor.execute(query, tuple(params))
         results = cursor.fetchall()
