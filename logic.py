@@ -56,7 +56,6 @@ def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: b
         params = []
 
 
-
         if char_name and item_name:
             query += ' WHERE char_name = ? AND item_name LIKE ?'
             params.extend([char_name, f"%{item_name}%"])
