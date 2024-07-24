@@ -4,12 +4,13 @@ from fastapi_pagination import Page, Params
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from logic import handle_login, get_items_wrapper, create_user, handle_refresh, get_char_names
+from logic import handle_login, get_items_wrapper, create_user, handle_refresh, get_char_names, get_newest_db, get_db_date
 from typing import Annotated
 from auth_table import create_table, user_table
 from auth_handler import AuthHandler
 import logging
 from typing import Optional, List, TypeVar, Generic
+from config import DB_DIR
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+                   "http://localhost:5174",
                    "http://localhost:5173",
                    "http://localhost:3000",
                    "0.0.0.0:3000", 
@@ -61,7 +63,6 @@ class Item(BaseModel):
 
 class ItemResponse(BaseModel):
     results: List[Item]
-    dbFile: str
     page: int
     size: int
     count: int
@@ -75,10 +76,9 @@ class CustomPage(Page[T], Generic[T]):
     custom_property: str
 
 
-def custom_paginate(object: dict, page: int, size: int) -> ItemResponse:
+def paginate(object: dict, page: int, size: int) -> ItemResponse:
     return {
         "results": object["items"],
-        "dbFile": object["dbFile"],
         "count": object["count"],
         "page": page,
         "size": size,
@@ -93,6 +93,13 @@ async def global_exception_handler(_, exc):
         content={"message": "Internal Server Error"},
     )
 
+@app.get("/get_db_file")
+async def get_db_file_endpoint():
+    try:
+        return get_db_date(get_newest_db(DB_DIR))
+    except Exception as e:
+        print(e)
+
 @app.get("/get_items", response_model=ItemResponse)
 async def get_items_endpoint(
     params: Params = Depends(),  
@@ -101,14 +108,18 @@ async def get_items_endpoint(
     active_col: Optional[str] = Query("", alias="activeColumn")
     ):
     try:
-        print("TEST GET ITEMS")
         if char_name == "ALL":
             char_name = ""
         page = params.page
         limit = params.size
-        items_query_object = get_items_wrapper(page, limit, char_name, item_name, active_col)
-        custom_results = custom_paginate(items_query_object, page, limit)
-        return custom_results
+        items = get_items_wrapper(
+            page=page, 
+            limit=limit,
+            char_name=char_name, 
+            item_name=item_name, 
+            active_col=active_col
+            )
+        return paginate(items, page, limit)
     except Exception as e:
         print(e)
 

@@ -12,7 +12,7 @@ import re
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 
-def get_newest_db(DB_DIR):
+def get_newest_db(DB_DIR) -> str:
     if DB_DIR == LOCAL_DB:
         return DB_DIR + "master.db"
     
@@ -28,24 +28,48 @@ def get_newest_db(DB_DIR):
                 newest_file = file_path  
     return newest_file
 
-def get_items_wrapper(page: int, limit: int, char_name: str, item_name: str, active_col: str):
+def get_db_date(DB_FILE: str) -> str:
+    return DB_FILE
+
+def get_items_wrapper(page: int = 1, limit: int = 25, char_name: str = "", item_name: str = "", active_col: str = ""):
     def snake_case(string: str) -> str:
         s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', string)
         return s1.lower()
     
-    print("ABOUT TO PRINT CAMEL CASE")
     active_col = snake_case(active_col)
-    print(f"active_col snake_case: {active_col}")
 
-    count = get_items(page, limit, char_name, item_name, False, active_col)
-    results = get_items(page, limit, char_name, item_name, True, active_col)
+    count = get_items(
+        page=page, 
+        limit=limit, 
+        char_name=char_name, 
+        item_name=item_name, 
+        paginate=False, 
+        active_col=active_col
+        )
+    results = get_items(
+        page=page, 
+        limit=limit, 
+        char_name=char_name, 
+        item_name=item_name, 
+        paginate=True, 
+        active_col=active_col
+        )
     results["count"] = count
     return results
 
-def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: bool, active_col: str):
+def get_items(**kwargs):
     DB_FILE = get_newest_db(DB_DIR)
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+
+    page = kwargs.get("page")
+    limit = kwargs.get("limit")
+    paginate = kwargs.get("paginate")
+    char_name = kwargs.get("char_name")
+    item_name = kwargs.get("item_name")
+    active_col = kwargs.get("active_col")
+
+
     offset = (page - 1) * limit 
 
     try:
@@ -90,7 +114,6 @@ def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: b
             ]
             return {
                 "items": new_results,
-                "dbFile": DB_FILE
             }
         else:
             count = results[0][0]
@@ -101,7 +124,6 @@ def get_items(page: int, limit: int, char_name: str, item_name: str, paginate: b
         print(e)
         return {
             "items": [],
-            "dbFile": ""
         }
     finally:
         conn.close()
