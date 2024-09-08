@@ -29,16 +29,11 @@ def get_newest_db(DB_DIR) -> str:
     return newest_file
 
 def get_db_date(DB_FILE: str) -> str:
-     # Define the regex pattern to extract date and time
     pattern = r'(\d{2}-\d{2}-\d{2} \d{2}-\d{2})'
-    
-    # Search for the pattern in the given path
     match = re.search(pattern, DB_FILE)
     
     if match:
-        # Extract the matched string
         datetime_str = match.group(1)
-        # Replace the last hyphen with a colon
         formatted_datetime_str = datetime_str.rsplit('-', 1)[0] + ':' + datetime_str.rsplit('-', 1)[1]
         return formatted_datetime_str
     else:

@@ -100,6 +100,31 @@ async def get_db_file_endpoint():
     except Exception as e:
         print(e)
 
+# We needed to change this for the new FE version
+@app.get("/get_items2", response_model=ItemResponse)
+async def get_items_endpoint(
+    page: Optional[int] = Query("", alias="page"),
+    page_size: Optional[int] = Query("", alias="pageSize"),
+    item_name: Optional[str] = Query("", alias="itemName"),
+    active_col: Optional[str] = Query("", alias="activeColumn"),
+    char_name: Optional[str] = Query("", alias="charName"),
+    ):
+    try:
+
+        if char_name == "ALL":
+            char_name = ""
+        items = get_items_wrapper(
+            page=page,
+            limit=page_size,
+            char_name=char_name,
+            item_name=item_name,
+            active_col=active_col
+        )
+        return paginate(items, page, page_size)
+    except Exception as e:
+        print(e)
+
+
 @app.get("/get_items", response_model=ItemResponse)
 async def get_items_endpoint(
     params: Params = Depends(),  
